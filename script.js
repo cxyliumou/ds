@@ -1,3 +1,7 @@
+// DeepSeek API 配置
+const API_KEY = 'sk-428cd5de780149cf9e96ec67301c430d'; // 替换为您的实际 API Key
+const API_URL = 'https://api.deepseek.com/v1/chat';
+
 // 媒体录制相关变量
 let mediaRecorder;
 let recordedChunks = [];
@@ -94,6 +98,63 @@ function toggleVoiceInput() {
         recognition.start();
         voiceBtn.classList.add('active');
     }
+}
+
+// DeepSeek API 调用
+async function sendMessage() {
+    const input = document.getElementById('chat-input').value;
+    if (!input) return;
+
+    showLoading();
+    addMessage(input, 'user');
+    document.getElementById('chat-input').value = '';
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                messages: [{
+                    role: "user",
+                    content: input
+                }],
+                temperature: 0.7
+            })
+        });
+
+        const data = await response.json();
+        addMessage(data.choices[0].message.content, 'bot');
+    } catch (error) {
+        console.error('API请求失败:', error);
+        addMessage('系统暂时无法响应，请稍后再试', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// 添加消息到聊天窗口
+function addMessage(content, role) {
+    const messages = document.getElementById('messages');
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message', role);
+    messageElement.innerHTML = `
+        <div class="message-content">${content}</div>
+    `;
+    messages.appendChild(messageElement);
+    messages.scrollTop = messages.scrollHeight;
+}
+
+// 显示加载动画
+function showLoading() {
+    document.getElementById('loading').style.display = 'block';
+}
+
+// 隐藏加载动画
+function hideLoading() {
+    document.getElementById('loading').style.display = 'none';
 }
 
 // 绑定按钮事件
