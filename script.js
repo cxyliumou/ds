@@ -247,6 +247,7 @@ document.getElementById('voice-btn').addEventListener('click', toggleVoiceInput)
 
 // 监听回车键
 document.getElementById('chat-input').addEventListener('keydown', (event) => {
+
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault(); // 防止默认换行行为
         sendMessage();
