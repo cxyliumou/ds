@@ -1,4 +1,4 @@
-const API_KEY = 'sk-428cd5de780149cf9e96ec67301c430d'; // 替换为您的实际 API Key
+const API_KEY = 'sk-f85471a16e1a49a9a4bbc0957665b0cb'; // 替换为您的实际 API Key
 const API_URL = 'https://api.deepseek.com/chat/completions';
 
 // 媒体录制相关变量
