@@ -1,5 +1,5 @@
 const API_KEY = 'sk-428cd5de780149cf9e96ec67301c430d'; // 替换为您的实际 API Key
-const API_URL = 'https://api.deepseek.com/v1/chat';
+const API_URL = 'https://api.deepseek.com/ds';
 
 // 媒体录制相关变量
 let mediaRecorder;
