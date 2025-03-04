@@ -7,7 +7,7 @@ let mediaRecorder;
 let recordedChunks = [];
 let isRecording = false;
 
-// 初始化媒体设备（摄像头和麦克风）
+// 初始化媒体设备
 async function initMedia() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -73,18 +73,24 @@ function stopRecording() {
 // 语音输入功能
 let recognition;
 function initSpeechRecognition() {
-    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'zh-CN';
-    recognition.interimResults = true;
+    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'zh-CN';
+        recognition.interimResults = true;
 
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById('chat-input').value = transcript;
-    };
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            document.getElementById('chat-input').value = transcript;
+        };
 
-    recognition.onerror = (event) => {
-        console.error('语音识别错误:', event.error);
-    };
+        recognition.onerror = (event) => {
+            console.error('语音识别错误:', event.error);
+            alert('语音识别失败，请检查麦克风权限！');
+        };
+    } else {
+        console.warn('当前浏览器不支持语音识别');
+        alert('您的浏览器不支持语音识别功能，请使用 Chrome 或 Edge 浏览器。');
+    }
 }
 
 function toggleVoiceInput() {
@@ -125,8 +131,16 @@ async function sendMessage() {
             })
         });
 
+        if (!response.ok) {
+            throw new Error(`API 请求失败: ${response.statusText}`);
+        }
+
         const data = await response.json();
-        addMessage(data.choices[0].message.content, 'bot');
+        if (data.choices && data.choices.length > 0) {
+            addMessage(data.choices[0].message.content, 'bot');
+        } else {
+            throw new Error('API 返回数据无效');
+        }
     } catch (error) {
         console.error('API请求失败:', error);
         addMessage('系统暂时无法响应，请稍后再试', 'error');
@@ -161,6 +175,14 @@ function hideLoading() {
 document.getElementById('startInterview').addEventListener('click', startRecording);
 document.getElementById('stopInterview').addEventListener('click', stopRecording);
 document.getElementById('voice-btn').addEventListener('click', toggleVoiceInput);
+
+// 监听回车键
+document.getElementById('chat-input').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+        event.preventDefault(); // 防止默认换行行为
+        sendMessage();
+    }
+});
 
 // 初始化媒体设备
 document.addEventListener('DOMContentLoaded', () => {
