@@ -1,4 +1,3 @@
-// DeepSeek API 配置
 const API_KEY = 'sk-428cd5de780149cf9e96ec67301c430d'; // 替换为您的实际 API Key
 const API_URL = 'https://api.deepseek.com/v1/chat';
 
@@ -136,6 +135,7 @@ async function sendMessage() {
         }
 
         const data = await response.json();
+        console.log('API 响应:', data); // 打印 API 响应
         if (data.choices && data.choices.length > 0) {
             addMessage(data.choices[0].message.content, 'bot');
         } else {
