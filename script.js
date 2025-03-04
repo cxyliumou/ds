@@ -1,4 +1,4 @@
-const API_KEY = 'sk-f85471a16e1a49a9a4bbc0957665b0cb'; // 替换为您的实际 API Key
+const API_KEY = 'sk-428cd5de780149cf9e96ec67301c430d'; // 替换为您的实际 API Key
 const API_URL = 'https://api.deepseek.com/chat/completions';
 
 // 媒体录制相关变量
@@ -105,6 +105,83 @@ function toggleVoiceInput() {
     }
 }
 
+// 格式化消息文本
+function formatMessage(text) {
+    if (!text) return '';
+
+    // 处理标题和换行
+    let lines = text.split('\n');
+    let formattedLines = lines.map(line => {
+        // 处理标题（**文本**）
+        line = line.replace(/\*\*(.*?)\*\*/g, '<span class="bold-text">$1</span>');
+        return line;
+    });
+
+    // 将 ### 替换为换行，并确保每个部分都是一个段落
+    let processedText = formattedLines.join('\n');
+    let sections = processedText
+        .split('###')
+        .filter(section => section.trim())
+        .map(section => {
+            // 移除多余的换行和空格
+            let lines = section.split('\n').filter(line => line.trim());
+
+            if (lines.length === 0) return '';
+
+            // 处理每个部分
+            let result = '';
+            let currentIndex = 0;
+
+            while (currentIndex < lines.length) {
+                let line = lines[currentIndex].trim();
+
+                // 如果是数字开头（如 "1.")
+                if (/^\d+\./.test(line)) {
+                    result += `<p class="section-title">${line}</p>`;
+                }
+                // 如果是小标题（以破折号开头）
+                else if (line.startsWith('-')) {
+                    result += `<p class="subsection"><span class="bold-text">${line.replace(/^-/, '').trim()}</span></p>`;
+                }
+                // 如果是正文（包含冒号的行）
+                else if (line.includes(':')) {
+                    let [subtitle, content] = line.split(':').map(part => part.trim());
+                    result += `<p><span class="subtitle">${subtitle}</span>: ${content}</p>`;
+                }
+                // 普通文本
+                else {
+                    result += `<p>${line}</p>`;
+                }
+                currentIndex++;
+            }
+            return result;
+        });
+
+    return sections.join('');
+}
+
+// 添加消息到聊天窗口
+function addMessage(content, role) {
+    const messages = document.getElementById('messages');
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message', role);
+
+    const avatar = document.createElement('img');
+    avatar.src = role === 'user' ? 'user-avatar.png' : 'bot-avatar.png';
+    avatar.alt = role === 'user' ? 'User' : 'Bot';
+
+    const messageContent = document.createElement('div');
+    messageContent.className = 'message-content';
+    messageContent.innerHTML = role === 'user' ? content : formatMessage(content);
+
+    messageElement.appendChild(avatar);
+    messageElement.appendChild(messageContent);
+    messages.appendChild(messageElement);
+
+    // 平滑滚动到底部
+    messageElement.scrollIntoView({ behavior: 'smooth' });
+}
+
 // DeepSeek API 调用
 async function sendMessage() {
     const input = document.getElementById('chat-input').value;
@@ -115,19 +192,23 @@ async function sendMessage() {
     document.getElementById('chat-input').value = '';
 
     try {
+        const payload = {
+            model: "deepseek-chat",
+            messages: [
+                { role: "system", content: "You are a helpful assistant" },
+                { role: "user", content: input }
+            ],
+            stream: false,
+            temperature: 0.7
+        };
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${API_KEY}`
             },
-            body: JSON.stringify({
-                messages: [{
-                    role: "user",
-                    content: input
-                }],
-                temperature: 0.7
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -143,22 +224,10 @@ async function sendMessage() {
         }
     } catch (error) {
         console.error('API请求失败:', error);
-        addMessage('系统暂时无法响应，请稍后再试', 'error');
+        addMessage(`出错了: ${error.message}`, 'error');
     } finally {
         hideLoading();
     }
-}
-
-// 添加消息到聊天窗口
-function addMessage(content, role) {
-    const messages = document.getElementById('messages');
-    const messageElement = document.createElement('div');
-    messageElement.classList.add('message', role);
-    messageElement.innerHTML = `
-        <div class="message-content">${content}</div>
-    `;
-    messages.appendChild(messageElement);
-    messages.scrollTop = messages.scrollHeight;
 }
 
 // 显示加载动画
@@ -178,7 +247,7 @@ document.getElementById('voice-btn').addEventListener('click', toggleVoiceInput)
 
 // 监听回车键
 document.getElementById('chat-input').addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') {
+    if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault(); // 防止默认换行行为
         sendMessage();
     }
